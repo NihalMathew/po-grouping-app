@@ -8,7 +8,7 @@ from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
-st.title("📦 Warehouse Packing Group Generator")
+st.title("📦 VCC Warehouse Packing Group Generator")
 
 uploaded_file = st.file_uploader("Upload your POInput.xlsx file", type="xlsx")
 
