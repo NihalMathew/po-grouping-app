@@ -8,7 +8,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from io import BytesIO
 
-st.title("📦 VCCF Warehouse Packing Group Generator")
+st.title("📦 VCC Warehouse Packing Group Generator")
 
 uploaded_file = st.file_uploader("Upload your POInput file (CSV or Excel)", type=["xlsx", "csv"])
 
@@ -26,8 +26,17 @@ if uploaded_file is not None:
         st.stop()
 
     def extract_color(desc):
-        if pd.isna(desc):
-            return 'UNKNOWN'
+    if pd.isna(desc):
+        return 'UNKNOWN'
+
+    # Step 1: comma-based extraction (preferred)
+    parts = desc.split(',')
+    for part in parts:
+        cleaned = part.strip().upper().replace('.', '')
+        if cleaned and all(c.isalpha() or c.isspace() for c in cleaned) and len(cleaned) >= 3:
+            return cleaned
+
+    return 'UNKNOWN'
         # Try comma-based parsing first
         parts = [p.strip().upper() for p in desc.split(',')]
         for part in parts:
@@ -101,6 +110,8 @@ if uploaded_file is not None:
     grouped_df = pd.DataFrame(grouped_rows)
     
 
+    group_ids = sorted(grouped_df['Group ID'].unique(), key=lambda g: int(g.replace('Group ', '')))
+
     # Display summary stats
     total_groups = len(group_ids)
     unique_styles = grouped_df['ColorStyle'].nunique()
@@ -117,7 +128,6 @@ if uploaded_file is not None:
     st.metric("Total Infant Items", total_infant + 0)
     st.metric("Total Toddler Items", total_toddler + 0)
     grouped_df_sorted = grouped_df.sort_values(by='Group ID')
-    group_ids = sorted(grouped_df_sorted['Group ID'].unique(), key=lambda g: int(g.replace('Group ', '')))
 
     wb = Workbook()
     ws = wb.active
@@ -143,11 +153,12 @@ if uploaded_file is not None:
         current_row += 1
 
         for _, row in group_data.iterrows():
-            ws.cell(row=current_row, column=1, value=row['ColorStyle'])
-            for i, size in enumerate(infant_sizes, start=2):
-                ws.cell(row=current_row, column=i, value=row.get(size, 0))
-            ws.cell(row=current_row, column=i+1, value=row['Infant Total'])
-            current_row += 1
+            if row['Infant Total'] > 0:
+                ws.cell(row=current_row, column=1, value=row['ColorStyle'])
+                for i, size in enumerate(infant_sizes, start=2):
+                    ws.cell(row=current_row, column=i, value=row.get(size, 0))
+                ws.cell(row=current_row, column=i+1, value=row['Infant Total'])
+                current_row += 1
 
         current_row += 1
 
@@ -159,19 +170,20 @@ if uploaded_file is not None:
         current_row += 1
 
         for _, row in group_data.iterrows():
-            ws.cell(row=current_row, column=1, value=row['ColorStyle'])
-            for i, size in enumerate(toddler_sizes, start=2):
-                ws.cell(row=current_row, column=i, value=row.get(size, 0))
-            ws.cell(row=current_row, column=i+1, value=row['Toddler Total'])
-            current_row += 1
+            if row['Toddler Total'] > 0:
+                ws.cell(row=current_row, column=1, value=row['ColorStyle'])
+                for i, size in enumerate(toddler_sizes, start=2):
+                    ws.cell(row=current_row, column=i, value=row.get(size, 0))
+                ws.cell(row=current_row, column=i+1, value=row['Toddler Total'])
+                current_row += 1
 
         # Associated POs
         current_row += 1
         ws.cell(row=current_row, column=1, value="Associated POs:")
-        po_lines = '\n'.join(po_list.split(', '))
-        ws.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=8)
-        po_cell = ws.cell(row=current_row, column=2, value=po_lines)
-        po_cell.alignment = Alignment(wrapText=True, vertical='top')
+        po_list_split = po_list.split(', ')
+        for i, po in enumerate(po_list_split):
+            ws.cell(row=current_row + i, column=2, value=po)
+        current_row += len(po_list_split)
         current_row += 2
 
     output = BytesIO()
