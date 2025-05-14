@@ -8,9 +8,9 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from io import BytesIO
 
-st.title("📦 VCCF Warehouse Packing Group Generator")
+st.title("📦 VCC Warehouse Packing Group Generator")
 
-uploaded_file = st.file_uploader("Upload your POInput file (CSV or Excel)", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Upload your Input file (CSV or Excel)", type=["xlsx", "csv"])
 
 if uploaded_file is not None:
     if uploaded_file.name.endswith('.csv'):
