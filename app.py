@@ -15,6 +15,11 @@ uploaded_file = st.file_uploader("Upload your POInput file (CSV or Excel)", type
 if uploaded_file is not None:
     st.subheader("📊 Summary Metrics")
 
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = pd.read_excel(uploaded_file)
+
     required_cols = {'PO Number', 'Material Description', 'Style Code', 'Size', 'Article Qty'}
     if not required_cols.issubset(set(df.columns)):
         st.error(f"❌ Uploaded file is missing required columns. Please include: {', '.join(required_cols)}")
