@@ -8,15 +8,12 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from io import BytesIO
 
-st.title("📦 VCC Warehouse Packing Group Generator")
+st.title("📦 VCCF Warehouse Packing Group Generator")
 
-uploaded_file = st.file_uploader("Upload your Input file (CSV or Excel)", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Upload your POInput file (CSV or Excel)", type=["xlsx", "csv"])
 
 if uploaded_file is not None:
-    if uploaded_file.name.endswith('.csv'):
-        df = pd.read_csv(uploaded_file)
-    else:
-        df = pd.read_excel(uploaded_file)
+    st.subheader("📊 Summary Metrics")
 
     required_cols = {'PO Number', 'Material Description', 'Style Code', 'Size', 'Article Qty'}
     if not required_cols.issubset(set(df.columns)):
@@ -97,6 +94,22 @@ if uploaded_file is not None:
             })
 
     grouped_df = pd.DataFrame(grouped_rows)
+
+    # Display summary stats
+    total_groups = len(group_ids)
+    unique_styles = grouped_df['ColorStyle'].nunique()
+    total_infant = grouped_df['Infant Total'].sum()
+    total_toddler = grouped_df['Toddler Total'].sum()
+    unique_po_orders = len(set(p for po in grouped_df['POs'] for p in po.split(', ')))
+    largest_group_size = grouped_df.groupby('Group ID')['PO Count'].max().max()
+
+    col1, col2 = st.columns(2)
+    col1.metric("Total POs Grouped", total_groups)
+    col1.metric("Unique PO Orders", unique_po_orders)
+    col2.metric("Unique ColorStyles", unique_styles)
+    col2.metric("Largest Group Size", largest_group_size)
+    st.metric("Total Infant Items", total_infant + 0)
+    st.metric("Total Toddler Items", total_toddler + 0)
     grouped_df_sorted = grouped_df.sort_values(by='Group ID')
     group_ids = sorted(grouped_df_sorted['Group ID'].unique(), key=lambda g: int(g.replace('Group ', '')))
 
