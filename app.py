@@ -1,19 +1,22 @@
-# Final updated script for warehouse packing report with two size bands and grouped POs
+# Streamlit-compatible version of the warehouse packing report with improved color parsing
 
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
-from collections import defaultdict
+import streamlit as st
 import pandas as pd
 import re
+from collections import defaultdict
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
 from io import BytesIO
-import streamlit as st
 
-st.title("📦 Warehouse Packing Group Generator")
+st.title("📦 VCCF Warehouse Packing Group Generator")
 
-uploaded_file = st.file_uploader("Upload your POInput.xlsx file", type="xlsx")
+uploaded_file = st.file_uploader("Upload your POInput file (CSV or Excel)", type=["xlsx", "csv"])
 
 if uploaded_file is not None:
-    df = pd.read_excel(uploaded_file)
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file)
+    else:
+        df = pd.read_excel(uploaded_file)
 
     required_cols = {'PO Number', 'Material Description', 'Style Code', 'Size', 'Article Qty'}
     if not required_cols.issubset(set(df.columns)):
@@ -22,17 +25,18 @@ if uploaded_file is not None:
 
     def extract_color(desc):
         if pd.isna(desc):
-            return ''
-        parts = desc.split('_')
-        for part in reversed(parts):
-            clean = part.strip()
-            if clean.isalpha() and len(clean) >= 3:
-                return clean.upper()
-        if ',' in desc:
-            for segment in desc.split(','):
-                word = segment.strip()
-                if word.isalpha() and len(word) >= 3:
-                    return word.upper()
+            return 'UNKNOWN'
+        # Try comma-based parsing first
+        parts = [p.strip().upper() for p in desc.split(',')]
+        for part in parts:
+            if all(x.isalpha() or x.isspace() for x in part) and len(part) >= 3:
+                return part
+        # Fallback to underscore split
+        segments = desc.split('_')
+        for part in reversed(segments):
+            clean = part.strip().upper()
+            if all(x.isalpha() or x.isspace() for x in clean) and len(clean) >= 3:
+                return clean
         return 'UNKNOWN'
 
     def extract_style_digits(style):
@@ -112,7 +116,7 @@ if uploaded_file is not None:
         header_cell.alignment = Alignment(horizontal='center')
         current_row += 1
 
-        # Infant size table
+        # Infant sizes
         ws.cell(row=current_row, column=1, value="ColorStyle")
         for i, size in enumerate(infant_sizes, start=2):
             ws.cell(row=current_row, column=i, value=size)
@@ -128,7 +132,7 @@ if uploaded_file is not None:
 
         current_row += 1
 
-        # Toddler size table
+        # Toddler sizes
         ws.cell(row=current_row, column=1, value="ColorStyle")
         for i, size in enumerate(toddler_sizes, start=2):
             ws.cell(row=current_row, column=i, value=size)
@@ -142,6 +146,7 @@ if uploaded_file is not None:
             ws.cell(row=current_row, column=i+1, value=row['Toddler Total'])
             current_row += 1
 
+        # Associated POs
         current_row += 1
         ws.cell(row=current_row, column=1, value="Associated POs:")
         po_lines = '\n'.join(po_list.split(', '))
