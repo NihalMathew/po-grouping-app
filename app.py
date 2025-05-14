@@ -99,6 +99,7 @@ if uploaded_file is not None:
             })
 
     grouped_df = pd.DataFrame(grouped_rows)
+    
 
     # Display summary stats
     total_groups = len(group_ids)
