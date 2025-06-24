@@ -1,5 +1,3 @@
-# Streamlit-compatible version of the warehouse packing report with improved color parsing
-
 import streamlit as st
 import pandas as pd
 import re
@@ -44,7 +42,8 @@ if uploaded_file is not None:
     df['StyleDigits'] = df['Style Code'].apply(extract_style_digits)
     df['ColorStyle'] = df['Color'] + ' - ' + df['StyleDigits']
 
-    infant_sizes = ['6-12M', '12-18M', '18-24M']
+    # Update infant_sizes to include 0-3M and 3-6M
+    infant_sizes = ['0-3M', '3-6M', '6-12M', '12-18M', '18-24M']
     toddler_sizes = ['2-3Y', '3-4Y', '5-6Y', '7-8Y']
     all_sizes = infant_sizes + toddler_sizes
 
