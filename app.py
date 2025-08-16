@@ -42,10 +42,10 @@ if uploaded_file is not None:
     df['StyleDigits'] = df['Style Code'].apply(extract_style_digits)
     df['ColorStyle'] = df['Color'] + ' - ' + df['StyleDigits']
 
-    # Update infant_sizes to include 0-3M and 3-6M
     infant_sizes = ['0-3M', '3-6M', '6-12M', '12-18M', '18-24M']
     toddler_sizes = ['2-3Y', '3-4Y', '5-6Y', '7-8Y']
-    all_sizes = infant_sizes + toddler_sizes
+    junior_sizes = ['8-9Y', '9-10Y', '11-12Y', '13-14Y', '15-16Y']
+    all_sizes = infant_sizes + toddler_sizes + junior_sizes
 
     pivot = df.pivot_table(
         index=['PO Number', 'ColorStyle'],
@@ -61,6 +61,7 @@ if uploaded_file is not None:
 
     pivot['Infant Total'] = pivot[infant_sizes].sum(axis=1)
     pivot['Toddler Total'] = pivot[toddler_sizes].sum(axis=1)
+    pivot['Junior Total'] = pivot[junior_sizes].sum(axis=1)
     pivot.reset_index(inplace=True)
 
     po_group_map = defaultdict(list)
@@ -78,14 +79,17 @@ if uploaded_file is not None:
             color_style = entry[0]
             size_vals = entry[1:]
             infant_values = size_vals[:len(infant_sizes)]
-            toddler_values = size_vals[len(infant_sizes):]
+            toddler_values = size_vals[len(infant_sizes):len(infant_sizes) + len(toddler_sizes)]
+            junior_values = size_vals[len(infant_sizes) + len(toddler_sizes):]
             grouped_rows.append({
                 'Group ID': f'Group {idx}',
                 'ColorStyle': color_style,
                 **{infant_sizes[i]: infant_values[i] for i in range(len(infant_sizes))},
                 **{toddler_sizes[i]: toddler_values[i] for i in range(len(toddler_sizes))},
+                **{junior_sizes[i]: junior_values[i] for i in range(len(junior_sizes))},
                 'Infant Total': sum(infant_values),
                 'Toddler Total': sum(toddler_values),
+                'Junior Total': sum(junior_values),
                 'POs': ', '.join(map(str, sorted(set(po_list)))),
                 'PO Count': po_count
             })
@@ -140,6 +144,23 @@ if uploaded_file is not None:
                 for i, size in enumerate(toddler_sizes, start=2):
                     ws.cell(row=current_row, column=i, value=row.get(size, 0))
                 ws.cell(row=current_row, column=i+1, value=row['Toddler Total'])
+                current_row += 1
+
+        current_row += 1
+
+        # Junior sizes
+        ws.cell(row=current_row, column=1, value="ColorStyle")
+        for i, size in enumerate(junior_sizes, start=2):
+            ws.cell(row=current_row, column=i, value=size)
+        ws.cell(row=current_row, column=i+1, value="Total")
+        current_row += 1
+
+        for _, row in group_data.iterrows():
+            if row['Junior Total'] > 0:
+                ws.cell(row=current_row, column=1, value=row['ColorStyle'])
+                for i, size in enumerate(junior_sizes, start=2):
+                    ws.cell(row=current_row, column=i, value=row.get(size, 0))
+                ws.cell(row=current_row, column=i+1, value=row['Junior Total'])
                 current_row += 1
 
         # Associated POs
